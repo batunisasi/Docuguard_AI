@@ -1,0 +1,10 @@
+{
+  "description": "Helps IT teams review incident reports against SOPs and templates, surface compliance gaps, and guide consistent human review.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

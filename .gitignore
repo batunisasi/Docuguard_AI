@@ -1,0 +1,34 @@
+# Secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and build
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+
+# Private data and local files
+backups/
+**/backups/
+frontend-backup/
+storage/
+**/storage/
+.n8n/
+**/.n8n/
+*.log
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db

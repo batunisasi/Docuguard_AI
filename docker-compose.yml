@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docuguard}
+      POSTGRES_USER: ${POSTGRES_USER:-docuguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-docuguard} -d ${POSTGRES_DB:-docuguard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-docuguard}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-docuguard}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+      DB_POSTGRESDB_SCHEMA: n8n
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5679/
+      N8N_SECURE_COOKIE: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GENERIC_TIMEZONE: Asia/Jakarta
+    volumes:
+      - n8n_data:/home/node/.n8n
+    ports:
+      - "5679:5678"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER:-docuguard}:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/${POSTGRES_DB:-docuguard}
+      STORAGE_DIR: /app/storage
+      N8N_REVIEW_WEBHOOK_URL: ${N8N_REVIEW_WEBHOOK_URL:-http://n8n:5678/webhook/docuguard-review}
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-20}
+      CORS_ORIGIN: http://localhost:3000
+    volumes:
+      - docuguard_storage:/app/storage
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  n8n_data:
+  docuguard_storage:
